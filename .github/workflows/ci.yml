@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check package tarball
+        run: npm run pack:check
+
+  example-js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: example/package-lock.json
+      - name: Install example dependencies
+        working-directory: example
+        run: npm install
+      - name: TypeScript check
+        working-directory: example
+        run: node ./node_modules/typescript/bin/tsc --noEmit
+      - name: Jest
+        working-directory: example
+        run: node ./node_modules/jest/bin/jest.js --runInBand --watchman=false

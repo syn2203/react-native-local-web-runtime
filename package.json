@@ -1,0 +1,66 @@
+{
+  "name": "react-native-local-web-runtime",
+  "version": "1.0.0",
+  "description": "React Native runtime for rendering bundled local web assets with a native bridge.",
+  "main": "src/index.js",
+  "react-native": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
+  },
+  "files": [
+    "android/build.gradle",
+    "android/src",
+    "ios",
+    "src",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "LocalWebRuntime.podspec",
+    "PUBLISHING.md",
+    "RELEASE_CHECKLIST.md",
+    "react-native.config.js",
+    "README.md",
+    "README.zh-CN.md",
+    "SECURITY.md"
+  ],
+  "keywords": [
+    "react-native",
+    "react-native-library",
+    "webview",
+    "local-web",
+    "local-assets",
+    "offline",
+    "wasm"
+  ],
+  "license": "MIT",
+  "author": "syn2203",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/syn2203/react-native-local-web-runtime.git"
+  },
+  "bugs": {
+    "url": "https://github.com/syn2203/react-native-local-web-runtime/issues"
+  },
+  "homepage": "https://github.com/syn2203/react-native-local-web-runtime#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20.19.4"
+  },
+  "scripts": {
+    "android": "yarn --cwd example android",
+    "ios": "yarn --cwd example ios",
+    "pack:check": "npm pack --dry-run --cache ./.npm-pack-cache",
+    "pack:clean": "rm -rf ./.npm-pack-cache",
+    "start": "yarn --cwd example start"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-native": ">=0.72"
+  }
+}

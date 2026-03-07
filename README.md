@@ -1,5 +1,7 @@
 # react-native-local-web-runtime
 
+[English](./README.md) | [简体中文](./README.zh-CN.md)
+
 Minimal React Native runtime for rendering bundled local web assets from app
 bundles on iOS and Android.
 
@@ -195,4 +197,3 @@ Before the first public release, update the final GitHub repository metadata in
 ## Release notes
 
 See [CHANGELOG.md](./CHANGELOG.md) and [PUBLISHING.md](./PUBLISHING.md).
-# react-native-local-web-runtime

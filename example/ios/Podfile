@@ -1,0 +1,47 @@
+# Resolve react_native_pods.rb with node to allow for hoisting and Yarn PnP.
+app_root = File.expand_path('..', __dir__)
+pnp_path = File.join(app_root, '.pnp.cjs')
+use_pnp = File.exist?(pnp_path) && !File.directory?(File.join(app_root, 'node_modules'))
+
+if use_pnp
+  pnp_option = "--require #{pnp_path}"
+  ENV['NODE_OPTIONS'] = [pnp_option, ENV['NODE_OPTIONS']].compact.join(' ').strip
+end
+
+node_args = []
+node_args += ['--require', pnp_path] if use_pnp
+node_args += ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]
+
+require Pod::Executable.execute_command('node', node_args).strip
+
+platform :ios, min_ios_version_supported
+prepare_react_native_project!
+
+linkage = ENV['USE_FRAMEWORKS']
+if linkage != nil
+  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+  use_frameworks! :linkage => linkage.to_sym
+end
+
+target 'LocalWebRuntimeExample' do
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )
+  end
+end
