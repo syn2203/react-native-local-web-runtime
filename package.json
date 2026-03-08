@@ -59,6 +59,9 @@
     "pack:clean": "rm -rf ./.npm-pack-cache",
     "start": "yarn --cwd example start"
   },
+  "dependencies": {
+    "@babel/runtime": "^7.25.0"
+  },
   "peerDependencies": {
     "react": ">=18",
     "react-native": ">=0.72"

@@ -10,14 +10,14 @@
     <style>
       :root {
         color-scheme: dark;
-        --bg: #0d1526;
-        --panel: #131d33;
-        --panel-soft: #182440;
-        --border: rgba(152, 176, 226, 0.18);
+        --bg: #09111f;
+        --panel: #111b30;
+        --panel-soft: #17233d;
+        --border: rgba(149, 173, 222, 0.18);
         --text: #f3f6ff;
-        --muted: #9ba9c7;
-        --accent: #7fb1ff;
-        --accent-soft: rgba(127, 177, 255, 0.16);
+        --muted: #9ba8c6;
+        --accent: #86b4ff;
+        --accent-soft: rgba(134, 180, 255, 0.14);
         --highlight: #f7b563;
       }
 
@@ -29,7 +29,7 @@
         margin: 0;
         min-height: 100vh;
         background:
-          radial-gradient(circle at top right, rgba(89, 129, 213, 0.22), transparent 30%),
+          radial-gradient(circle at top right, rgba(86, 125, 210, 0.22), transparent 30%),
           linear-gradient(180deg, #09111f 0%, #0d1526 100%);
         color: var(--text);
         font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -40,60 +40,30 @@
         padding: 18px;
       }
 
-      .window {
+      .shell {
         border: 1px solid var(--border);
-        border-radius: 20px;
-        background: rgba(8, 13, 25, 0.88);
+        border-radius: 22px;
+        background: rgba(9, 15, 28, 0.9);
         box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
         overflow: hidden;
       }
 
-      .window-bar {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+      .hero {
         border-bottom: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.03);
-        padding: 12px 14px;
-      }
-
-      .dots {
-        display: flex;
-        gap: 6px;
-      }
-
-      .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.24);
-      }
-
-      .url {
-        flex: 1;
-        overflow: hidden;
-        color: var(--muted);
-        font-family: "SF Mono", Menlo, monospace;
-        font-size: 11px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .body {
         padding: 18px;
       }
 
-      .tag {
+      .eyebrow {
         display: inline-flex;
         align-items: center;
         border: 1px solid var(--border);
         border-radius: 999px;
         background: var(--accent-soft);
-        color: #d8e6ff;
+        color: #dbe8ff;
         font-size: 11px;
         font-weight: 800;
         letter-spacing: 0.08em;
-        margin-bottom: 14px;
+        margin-bottom: 12px;
         padding: 7px 10px;
         text-transform: uppercase;
       }
@@ -104,40 +74,68 @@
         line-height: 1.08;
       }
 
-      .subtitle {
-        margin: 0 0 16px;
+      .intro {
+        margin: 0;
         color: var(--muted);
         font-size: 14px;
         line-height: 1.55;
+      }
+
+      .path {
+        margin-top: 12px;
+        color: var(--muted);
+        font-family: "SF Mono", Menlo, monospace;
+        font-size: 11px;
+        word-break: break-word;
       }
 
       .grid {
         display: grid;
         gap: 12px;
+        padding: 18px;
       }
 
       .card {
         border: 1px solid var(--border);
-        border-radius: 16px;
+        border-radius: 18px;
         background: var(--panel);
-        padding: 14px;
+        padding: 16px;
       }
 
       .card h2 {
-        margin: 0 0 10px;
-        font-size: 14px;
+        margin: 0 0 8px;
+        font-size: 15px;
       }
 
-      .points {
-        margin: 0;
-        padding-left: 18px;
+      .card-copy {
+        margin: 0 0 14px;
         color: var(--muted);
         font-size: 13px;
-        line-height: 1.55;
+        line-height: 1.5;
       }
 
-      .points li + li {
-        margin-top: 6px;
+      .button-grid {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      button {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--panel-soft);
+        color: var(--text);
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        min-height: 52px;
+        padding: 10px 12px;
+        text-align: left;
+      }
+
+      button:active {
+        transform: translateY(1px);
       }
 
       .stats {
@@ -163,9 +161,18 @@
         word-break: break-word;
       }
 
+      .note {
+        border: 1px solid rgba(247, 181, 99, 0.2);
+        border-radius: 14px;
+        background: rgba(247, 181, 99, 0.08);
+        color: #ffe2bb;
+        margin-bottom: 12px;
+        padding: 12px 13px;
+      }
+
       .stage {
         position: relative;
-        height: 140px;
+        height: 144px;
         border: 1px dashed rgba(159, 187, 245, 0.2);
         border-radius: 14px;
         background:
@@ -199,8 +206,21 @@
         box-shadow: 0 0 0 8px rgba(247, 181, 99, 0.12);
       }
 
+      .target-label {
+        position: absolute;
+        left: 14px;
+        top: 14px;
+        border: 1px solid rgba(149, 173, 222, 0.18);
+        border-radius: 999px;
+        background: rgba(7, 12, 23, 0.72);
+        color: #dbe8ff;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 7px 10px;
+      }
+
       .stage-copy {
-        margin-top: 10px;
+        margin: 10px 0 0;
         color: var(--muted);
         font-size: 13px;
         line-height: 1.5;
@@ -218,90 +238,136 @@
   </head>
   <body>
     <div class="page">
-      <div class="window">
-        <div class="window-bar">
-          <div class="dots">
-            <span class="dot"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-          </div>
-          <div class="url" id="href">local document</div>
+      <div class="shell">
+        <div class="hero">
+          <div class="eyebrow">H5 / Embedded page</div>
+          <h1>This page can send actions back to RN.</h1>
+          <p class="intro" id="status-copy">
+            Buttons inside this H5 page send bridge events to React Native. RN
+            can answer with time, notes, and target updates.
+          </p>
+          <div class="path" id="href">local document</div>
         </div>
 
-        <div class="body">
-          <div class="tag">H5 / Local page</div>
-          <h1>This area is HTML, CSS, and JavaScript.</h1>
-          <p class="subtitle" id="subtitle">
-            Loaded from bundled web-dist. The RN header, RN buttons, and RN log
-            all live outside this viewport.
-          </p>
+        <div class="grid">
+          <section class="card">
+            <h2>H5 controls -> RN</h2>
+            <p class="card-copy">
+              These buttons live inside the web page. Press them and check the
+              RN cards and RN log outside this viewport.
+            </p>
+            <div class="button-grid">
+              <button type="button" data-action="ping">Ping RN</button>
+              <button type="button" data-action="time">Ask RN for time</button>
+              <button type="button" data-action="target">Ask RN for target</button>
+              <button type="button" data-action="note">Send note to RN</button>
+            </div>
+          </section>
 
-          <div class="grid">
-            <section class="card">
-              <h2>What this H5 page owns</h2>
-              <ul class="points">
-                <li>Its own DOM, CSS, and browser-style layout.</li>
-                <li>Its own bridge handlers and local visual state.</li>
-                <li>The target marker that moves when RN sends updates.</li>
-              </ul>
-            </section>
-
-            <section class="card">
-              <h2>Bridge state inside H5</h2>
-              <div class="stats">
-                <div>
-                  <span class="stat-label">Platform</span>
-                  <span class="stat-value" id="platform">-</span>
-                </div>
-                <div>
-                  <span class="stat-label">Bridge</span>
-                  <span class="stat-value" id="bridge">-</span>
-                </div>
-                <div>
-                  <span class="stat-label">Flags</span>
-                  <span class="stat-value" id="flags">-</span>
-                </div>
-                <div>
-                  <span class="stat-label">Last inbound type</span>
-                  <span class="stat-value" id="last-type">-</span>
-                </div>
+          <section class="card">
+            <h2>H5 bridge state</h2>
+            <div class="stats">
+              <div>
+                <span class="stat-label">Platform</span>
+                <span class="stat-value" id="platform">-</span>
               </div>
-            </section>
-
-            <section class="card">
-              <h2>H5 visual state</h2>
-              <div class="stage">
-                <div class="target" id="target"></div>
+              <div>
+                <span class="stat-label">Bridge</span>
+                <span class="stat-value" id="bridge">-</span>
               </div>
-              <p class="stage-copy" id="stage-copy">
-                Waiting for bridge events from React Native.
-              </p>
-            </section>
+              <div>
+                <span class="stat-label">RN -> H5 count</span>
+                <span class="stat-value" id="inbound-count">0</span>
+              </div>
+              <div>
+                <span class="stat-label">H5 -> RN count</span>
+                <span class="stat-value" id="outbound-count">0</span>
+              </div>
+              <div>
+                <span class="stat-label">Last RN message</span>
+                <span class="stat-value" id="last-inbound">-</span>
+              </div>
+              <div>
+                <span class="stat-label">Last H5 message</span>
+                <span class="stat-value" id="last-outbound">-</span>
+              </div>
+            </div>
+          </section>
 
-            <section class="card">
-              <h2>H5-side log</h2>
-              <pre class="log" id="log">Booting local web runtime...</pre>
-            </section>
-          </div>
+          <section class="card">
+            <h2>RN-driven state inside H5</h2>
+            <div class="note" id="note">
+              Waiting for the first message from React Native.
+            </div>
+            <div class="stage">
+              <div class="target" id="target"></div>
+              <div class="target-label" id="target-label">Mars</div>
+            </div>
+            <p class="stage-copy" id="stage-copy">
+              RN has not changed the H5 stage yet.
+            </p>
+          </section>
+
+          <section class="card">
+            <h2>H5-side log</h2>
+            <pre class="log" id="log">Booting local web runtime...</pre>
+          </section>
         </div>
       </div>
     </div>
 
     <script>
       const bridgeNode = document.getElementById('bridge');
-      const flagsNode = document.getElementById('flags');
       const hrefNode = document.getElementById('href');
-      const lastTypeNode = document.getElementById('last-type');
+      const inboundCountNode = document.getElementById('inbound-count');
+      const lastInboundNode = document.getElementById('last-inbound');
+      const lastOutboundNode = document.getElementById('last-outbound');
       const logNode = document.getElementById('log');
+      const noteNode = document.getElementById('note');
+      const outboundCountNode = document.getElementById('outbound-count');
       const platformNode = document.getElementById('platform');
       const stageCopyNode = document.getElementById('stage-copy');
-      const subtitleNode = document.getElementById('subtitle');
+      const statusCopyNode = document.getElementById('status-copy');
+      const targetLabelNode = document.getElementById('target-label');
       const targetNode = document.getElementById('target');
       const eventName = 'local-web-runtime:native-message';
+      const noteMessages = [
+        'H5 asked RN to store this note.',
+        'This note started in H5 and should appear in the RN panel.',
+        'RN and H5 are exchanging app state through the native bridge.',
+      ];
+
+      const state = {
+        inboundCount: 0,
+        lastInboundType: '-',
+        lastOutboundType: '-',
+        noteIndex: 0,
+        outboundCount: 0,
+      };
 
       function appendLog(line) {
         const lines = `${logNode.textContent}\n${line}`.trim().split('\n');
-        logNode.textContent = lines.slice(-8).join('\n');
+        logNode.textContent = lines.slice(-9).join('\n');
+      }
+
+      function readPayloadText(payload) {
+        return payload && typeof payload.text === 'string' ? payload.text : null;
+      }
+
+      function setStatus(text) {
+        statusCopyNode.textContent = text;
+      }
+
+      function updateStats() {
+        const runtime = window.__LOCAL_WEB_RUNTIME__ || {};
+
+        platformNode.textContent = runtime.platform || '-';
+        bridgeNode.textContent = runtime.bridgeEnabled ? 'enabled' : 'disabled';
+        hrefNode.textContent = window.location.href;
+        inboundCountNode.textContent = String(state.inboundCount);
+        outboundCountNode.textContent = String(state.outboundCount);
+        lastInboundNode.textContent = state.lastInboundType;
+        lastOutboundNode.textContent = state.lastOutboundType;
       }
 
       function postMessage(message) {
@@ -312,74 +378,129 @@
         window.LocalWebRuntime.postMessage(message);
       }
 
-      function refreshRuntimeState() {
-        const runtime = window.__LOCAL_WEB_RUNTIME__ || {};
-        const flags = window.__LOCAL_WEB_RUNTIME_FLAGS__ || {};
+      function sendToRn(type, payload) {
+        state.outboundCount += 1;
+        state.lastOutboundType = type;
+        updateStats();
+        appendLog(`H5 -> RN ${type}`);
 
-        platformNode.textContent = runtime.platform || '-';
-        bridgeNode.textContent = runtime.bridgeEnabled ? 'enabled' : 'disabled';
-        flagsNode.textContent = JSON.stringify(flags);
-        hrefNode.textContent = window.location.href;
+        postMessage({
+          v: 1,
+          id: `web-${Date.now()}`,
+          source: 'web',
+          type,
+          payload,
+          ts: Date.now(),
+        });
+      }
+
+      function moveTarget(payload) {
+        const x = payload && typeof payload.x === 'number' ? payload.x : 0.72;
+        const y = payload && typeof payload.y === 'number' ? payload.y : 0.44;
+        const label =
+          payload && typeof payload.label === 'string' ? payload.label : 'Target';
+
+        targetNode.style.left = `${x * 100}%`;
+        targetNode.style.top = `${y * 100}%`;
+        targetLabelNode.textContent = label;
+        stageCopyNode.textContent = `RN moved the H5 marker to ${label}.`;
       }
 
       function handleMessage(message) {
         const type = message && message.type ? message.type : 'UNKNOWN';
-        lastTypeNode.textContent = type;
+
+        state.inboundCount += 1;
+        state.lastInboundType = type;
+        updateStats();
         appendLog(`RN -> H5 ${type}`);
 
         if (type === 'BRIDGE_PING') {
-          stageCopyNode.textContent = 'H5 received BRIDGE_PING and replied with BRIDGE_PONG.';
-          postMessage({
-            v: 1,
-            id: `web-${Date.now()}`,
-            source: 'web',
-            type: 'BRIDGE_PONG',
-            payload: {received: message.payload || null},
-            ts: Date.now(),
+          noteNode.textContent = 'H5 received a ping from RN and answered back.';
+          setStatus('RN pinged H5. H5 replied with BRIDGE_PONG.');
+          sendToRn('BRIDGE_PONG', {
+            received: message.payload || null,
           });
           return;
         }
 
-        if (type === 'SET_HIGHLIGHT' && message.payload) {
-          const x = typeof message.payload.x === 'number' ? message.payload.x : 0.72;
-          const y = typeof message.payload.y === 'number' ? message.payload.y : 0.44;
-          const label =
-            typeof message.payload.label === 'string' ? message.payload.label : 'Target';
-
-          targetNode.style.left = `${x * 100}%`;
-          targetNode.style.top = `${y * 100}%`;
-          stageCopyNode.textContent = `H5 moved its own DOM marker to ${label}.`;
-          subtitleNode.textContent =
-            'The marker moved inside the local web page. RN layout outside this frame did not change.';
+        if (type === 'SET_HIGHLIGHT') {
+          moveTarget(message.payload);
+          noteNode.textContent = 'RN updated the H5 stage marker.';
+          setStatus('RN pushed a new target into H5.');
           return;
         }
 
-        if (type === 'SET_TIME' && message.payload) {
-          stageCopyNode.textContent = `H5 updated text from RN time: ${
-            message.payload.iso8601Utc || '-'
-          }`;
-          subtitleNode.textContent =
-            'The text above is rendered by the H5 document, even though the message came from RN.';
+        if (type === 'SET_TIME') {
+          const iso =
+            message.payload && typeof message.payload.iso8601Utc === 'string'
+              ? message.payload.iso8601Utc
+              : '-';
+          noteNode.textContent = `RN sent time into H5: ${iso}`;
+          stageCopyNode.textContent = `H5 updated its own DOM using RN time ${iso}.`;
+          setStatus('RN answered with the current time.');
+          return;
         }
+
+        if (type === 'SET_NOTE' || type === 'RN_ACK') {
+          const text = readPayloadText(message.payload) || 'RN updated the H5 note.';
+          noteNode.textContent = text;
+          setStatus(`RN responded with ${type}.`);
+          return;
+        }
+
+        setStatus(`H5 received ${type} from RN.`);
+      }
+
+      function bindButtons() {
+        const buttons = document.querySelectorAll('[data-action]');
+
+        buttons.forEach(button => {
+          button.addEventListener('click', () => {
+            const action = button.getAttribute('data-action');
+
+            if (action === 'ping') {
+              setStatus('H5 sent H5_PING_RN to the outer RN layer.');
+              sendToRn('H5_PING_RN', {
+                text: 'hello from the web page',
+              });
+              return;
+            }
+
+            if (action === 'time') {
+              setStatus('H5 requested the current time from RN.');
+              sendToRn('H5_REQUEST_TIME');
+              return;
+            }
+
+            if (action === 'target') {
+              setStatus('H5 requested a new target from RN.');
+              sendToRn('H5_REQUEST_TARGET');
+              return;
+            }
+
+            if (action === 'note') {
+              const text = noteMessages[state.noteIndex % noteMessages.length];
+              state.noteIndex += 1;
+              setStatus('H5 sent a note to RN. RN should store it and reply.');
+              sendToRn('H5_SEND_NOTE', {text});
+            }
+          });
+        });
       }
 
       window.addEventListener(eventName, event => {
         handleMessage(event.detail || {});
       });
 
-      refreshRuntimeState();
+      bindButtons();
+      updateStats();
       appendLog(`location.href = ${window.location.href}`);
 
       window.addEventListener('load', () => {
-        refreshRuntimeState();
+        updateStats();
         appendLog('H5 ready');
-        postMessage({
-          v: 1,
-          id: `web-ready-${Date.now()}`,
-          source: 'web',
-          type: 'BRIDGE_READY',
-          payload: {href: window.location.href},
-          ts: Date.now(),
+        sendToRn('BRIDGE_READY', {
+          href: window.location.href,
         });
       });
     </script>

@@ -2,6 +2,7 @@ package com.localwebruntime
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Base64
 import android.webkit.JavascriptInterface
@@ -12,10 +13,13 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.ReactContext
+import com.facebook.react.bridge.WritableMap
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
+import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.uimanager.annotations.ReactProp
-import com.facebook.react.uimanager.events.RCTEventEmitter
+import com.facebook.react.uimanager.events.Event
 import java.lang.ref.WeakReference
 import java.net.URLConnection
 import java.nio.charset.StandardCharsets
@@ -35,27 +39,38 @@ class LocalWebViewManager : SimpleViewManager<LocalWebViewManager.BridgeWebView>
     var runtimeFlagsJson: String = "{}"
   }
 
+  private class LocalWebBridgeMessageEvent(
+    surfaceId: Int,
+    viewId: Int,
+    private val raw: String,
+  ) : Event<LocalWebBridgeMessageEvent>(surfaceId, viewId) {
+    override fun getEventName(): String = EVENT_NAME
+
+    override fun canCoalesce(): Boolean = false
+
+    override fun getEventData(): WritableMap =
+      Arguments.createMap().apply {
+        putString("data", raw)
+      }
+
+    companion object {
+      const val EVENT_NAME = "topBridgeMessage"
+    }
+  }
+
   override fun getName(): String = "LocalWebView"
 
   override fun getExportedCustomDirectEventTypeConstants(): MutableMap<String, Any> {
     return mutableMapOf(
-      "onBridgeMessage" to mutableMapOf("registrationName" to "onBridgeMessage"),
+      LocalWebBridgeMessageEvent.EVENT_NAME to
+        mutableMapOf("registrationName" to "onBridgeMessage"),
     )
   }
 
   override fun createViewInstance(reactContext: ThemedReactContext): BridgeWebView {
     return BridgeWebView(reactContext).apply {
       setBackgroundColor(Color.BLACK)
-      settings.javaScriptEnabled = true
-      settings.domStorageEnabled = true
-      settings.databaseEnabled = true
-      settings.allowFileAccess = false
-      settings.allowContentAccess = true
-      settings.cacheMode = WebSettings.LOAD_DEFAULT
-      settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-      settings.setSupportZoom(false)
-      settings.builtInZoomControls = false
-      settings.displayZoomControls = false
+      configureSettings(settings)
       overScrollMode = WebView.OVER_SCROLL_NEVER
 
       addJavascriptInterface(LocalWebBridgeJsApi(this, reactContext), BRIDGE_INTERFACE)
@@ -70,37 +85,20 @@ class LocalWebViewManager : SimpleViewManager<LocalWebViewManager.BridgeWebView>
             view: WebView?,
             request: WebResourceRequest?,
           ): WebResourceResponse? {
-            val intercepted = mapToAssetResponse(reactContext, request?.url)
-            if (intercepted != null) {
-              return intercepted
-            }
-            return if (request != null) {
-              super.shouldInterceptRequest(view, request)
-            } else {
-              null
-            }
+            return interceptRequest(reactContext, request?.url)
+              ?: if (request != null) super.shouldInterceptRequest(view, request) else null
           }
 
           override fun shouldInterceptRequest(
             view: WebView?,
             url: String?,
           ): WebResourceResponse? {
-            val intercepted =
-              mapToAssetResponse(
-                reactContext,
-                if (url.isNullOrBlank()) null else Uri.parse(url),
-              )
-            if (intercepted != null) {
-              return intercepted
-            }
-            return if (url.isNullOrBlank()) {
-              null
-            } else {
-              super.shouldInterceptRequest(view, url)
-            }
+            val uri = if (url.isNullOrBlank()) null else Uri.parse(url)
+            return interceptRequest(reactContext, uri)
+              ?: if (url.isNullOrBlank()) null else super.shouldInterceptRequest(view, url)
           }
 
-          override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+          override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
             super.onPageStarted(view, url, favicon)
             injectRuntimeContext(view as? BridgeWebView)
           }
@@ -113,6 +111,26 @@ class LocalWebViewManager : SimpleViewManager<LocalWebViewManager.BridgeWebView>
 
       webChromeClient = WebChromeClient()
     }
+  }
+
+  private fun configureSettings(settings: WebSettings) {
+    settings.javaScriptEnabled = true
+    settings.domStorageEnabled = true
+    settings.databaseEnabled = true
+    settings.allowFileAccess = false
+    settings.allowContentAccess = true
+    settings.cacheMode = WebSettings.LOAD_DEFAULT
+    settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+    settings.setSupportZoom(false)
+    settings.builtInZoomControls = false
+    settings.displayZoomControls = false
+  }
+
+  private fun interceptRequest(
+    reactContext: ThemedReactContext,
+    uri: Uri?,
+  ): WebResourceResponse? {
+    return mapToAssetResponse(reactContext, uri)
   }
 
   private fun mapToAssetResponse(
@@ -161,16 +179,16 @@ class LocalWebViewManager : SimpleViewManager<LocalWebViewManager.BridgeWebView>
   }
 
   private fun resolveEncoding(mimeType: String): String? {
-    return if (
+    return if (isUtf8MimeType(mimeType)) "UTF-8" else null
+  }
+
+  private fun isUtf8MimeType(mimeType: String): Boolean {
+    return (
       mimeType.startsWith("text/") ||
         mimeType.contains("javascript") ||
         mimeType.contains("json") ||
         mimeType.contains("xml")
-    ) {
-      "UTF-8"
-    } else {
-      null
-    }
+      )
   }
 
   private fun cacheHeadersFor(assetPath: String): Map<String, String> {
@@ -250,15 +268,13 @@ class LocalWebViewManager : SimpleViewManager<LocalWebViewManager.BridgeWebView>
   }
 
   private fun emitBridgeEvent(
-    context: ThemedReactContext,
+    context: ReactContext,
     view: BridgeWebView,
     raw: String,
   ) {
-    val event =
-      Arguments.createMap().apply {
-        putString("data", raw)
-      }
-    context.getJSModule(RCTEventEmitter::class.java).receiveEvent(view.id, "onBridgeMessage", event)
+    UIManagerHelper.getEventDispatcherForReactTag(context, view.id)?.dispatchEvent(
+      LocalWebBridgeMessageEvent(UIManagerHelper.getSurfaceId(view), view.id, raw),
+    )
   }
 
   private inner class LocalWebBridgeJsApi(

@@ -15,38 +15,83 @@ const NativeLocalWebView =
     : null;
 
 const isLocalWebViewAvailable = NativeLocalWebView != null;
+const CUSTOM_VIEW_PROPS = [
+  'assetRoot',
+  'bridgeEnabled',
+  'children',
+  'entryFile',
+  'onBridgeMessage',
+  'outboundMessage',
+  'runtimeFlags',
+  'sourceUrl',
+];
 
-function LocalWebView({
-  assetRoot = 'web-dist',
-  bridgeEnabled = false,
-  children,
-  entryFile = 'index.html',
-  onBridgeMessage,
-  outboundMessage,
-  runtimeFlags,
-  sourceUrl,
-  style,
-  ...rest
-}) {
-  const runtimeFlagsJson = React.useMemo(
-    () => JSON.stringify(runtimeFlags ?? {}),
-    [runtimeFlags],
-  );
-  const resolvedUrl = sourceUrl ?? buildLocalWebEntryUrl(assetRoot, entryFile);
+function buildContainerProps(props, style) {
+  const viewProps = Object.assign({}, props, {style});
+
+  CUSTOM_VIEW_PROPS.forEach(propName => {
+    delete viewProps[propName];
+  });
+
+  return viewProps;
+}
+
+function buildNativeProps(config) {
+  return {
+    bridgeEnabled: config.bridgeEnabled,
+    onBridgeMessage: config.onBridgeMessage,
+    outboundMessage: config.outboundMessage == null ? '' : config.outboundMessage,
+    runtimeFlagsJson: JSON.stringify(config.runtimeFlags || {}),
+    style: config.style,
+    url: config.sourceUrl || buildLocalWebEntryUrl(config.assetRoot, config.entryFile),
+  };
+}
+
+function renderFallback(style) {
+  return React.createElement(View, {
+    style: [styles.fallback, style],
+  });
+}
+
+function renderNativeView(nativeProps) {
+  if (!NativeLocalWebView) {
+    return renderFallback(nativeProps.style);
+  }
+
+  return React.createElement(NativeLocalWebView, nativeProps);
+}
+
+function LocalWebView(props) {
+  const {
+    assetRoot = 'web-dist',
+    bridgeEnabled = false,
+    children,
+    entryFile = 'index.html',
+    onBridgeMessage,
+    outboundMessage,
+    runtimeFlags,
+    sourceUrl,
+    style,
+  } = props;
+  const nativeProps = buildNativeProps({
+    assetRoot,
+    bridgeEnabled,
+    entryFile,
+    onBridgeMessage,
+    outboundMessage,
+    runtimeFlags,
+    sourceUrl,
+    style,
+  });
+
+  if (children == null) {
+    return renderNativeView(nativeProps);
+  }
 
   return React.createElement(
     View,
-    {style: [styles.container, style], ...rest},
-    NativeLocalWebView
-      ? React.createElement(NativeLocalWebView, {
-          bridgeEnabled,
-          onBridgeMessage,
-          outboundMessage: outboundMessage ?? '',
-          runtimeFlagsJson,
-          style: StyleSheet.absoluteFill,
-          url: resolvedUrl,
-        })
-      : React.createElement(View, {style: styles.fallback}),
+    buildContainerProps(props, [styles.container, style]),
+    renderNativeView(Object.assign({}, nativeProps, {style: StyleSheet.absoluteFill})),
     children,
   );
 }
@@ -56,10 +101,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
-  fallback: {
-    ...StyleSheet.absoluteFillObject,
+  fallback: Object.assign({}, StyleSheet.absoluteFillObject, {
     backgroundColor: '#000000',
-  },
+  }),
 });
 
 module.exports = {

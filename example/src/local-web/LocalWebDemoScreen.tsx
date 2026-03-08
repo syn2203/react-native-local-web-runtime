@@ -25,7 +25,25 @@ type BridgeEnvelope = {
   ts: number;
 };
 
+type HighlightTarget = {
+  label: string;
+  x: number;
+  y: number;
+};
+
 const MAX_LOG_COUNT = 8;
+const DEFAULT_ENTRY_URL = buildLocalWebEntryUrl('web-dist', 'index.html');
+const READY_MESSAGE_TYPES = new Set(['BRIDGE_READY', 'BRIDGE_PONG']);
+const RUNTIME_FLAGS = {
+  consumer: 'example-app',
+  feature: 'local-web-demo',
+  version: 1,
+} as const;
+const HIGHLIGHT_TARGETS: HighlightTarget[] = [
+  {label: 'Mars', x: 0.72, y: 0.44},
+  {label: 'Saturn', x: 0.32, y: 0.58},
+  {label: 'Vega', x: 0.56, y: 0.24},
+];
 
 const RN_POINTS = [
   'The title, cards, buttons, and logs below are React Native views.',
@@ -62,25 +80,39 @@ function parseEnvelope(raw: string): BridgeEnvelope | null {
   }
 }
 
+function formatTimeLabel() {
+  return new Date().toLocaleTimeString('en-GB', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function readPayloadText(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const text = (payload as {text?: unknown}).text;
+  return typeof text === 'string' && text.length > 0 ? text : null;
+}
+
 export function LocalWebDemoScreen() {
   const insets = useSafeAreaInsets();
   const messageIndexRef = useRef(0);
+  const highlightIndexRef = useRef(0);
   const [bridgeStatus, setBridgeStatus] = useState('Waiting for H5 reply');
   const [outboundMessage, setOutboundMessage] = useState('');
   const [lastInboundType, setLastInboundType] = useState('-');
   const [lastOutboundType, setLastOutboundType] = useState('-');
+  const [inboundCount, setInboundCount] = useState(0);
+  const [outboundCount, setOutboundCount] = useState(0);
+  const [lastWebNote, setLastWebNote] = useState('No note from H5 yet.');
   const [logs, setLogs] = useState<string[]>([]);
 
-  const entryUrl = buildLocalWebEntryUrl('web-dist', 'index.html');
-
   function pushLog(line: string) {
-    const timestamp = new Date().toLocaleTimeString('en-GB', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-
+    const timestamp = formatTimeLabel();
     setLogs(current => [...current, `[${timestamp}] ${line}`].slice(-MAX_LOG_COUNT));
   }
 
@@ -93,7 +125,16 @@ export function LocalWebDemoScreen() {
 
     setOutboundMessage(serialized);
     setLastOutboundType(type);
+    setOutboundCount(current => current + 1);
     pushLog(`RN -> H5 ${type}`);
+  }
+
+  function sendNextHighlight() {
+    const target = HIGHLIGHT_TARGETS[highlightIndexRef.current];
+    highlightIndexRef.current =
+      (highlightIndexRef.current + 1) % HIGHLIGHT_TARGETS.length;
+
+    sendMessage('SET_HIGHLIGHT', target);
   }
 
   function handleBridgeMessage(event: NativeSyntheticEvent<LocalWebBridgeEvent>) {
@@ -111,12 +152,78 @@ export function LocalWebDemoScreen() {
     }
 
     setLastInboundType(message.type);
+    setInboundCount(current => current + 1);
     pushLog(`H5 -> RN ${message.type}`);
 
-    if (message.type === 'BRIDGE_READY' || message.type === 'BRIDGE_PONG') {
+    if (READY_MESSAGE_TYPES.has(message.type)) {
       setBridgeStatus('Connected');
+      return;
+    }
+
+    switch (message.type) {
+      case 'H5_PING_RN':
+        setBridgeStatus('H5 pinged RN');
+        sendMessage('RN_ACK', {
+          forType: message.type,
+          text: 'RN received the H5 ping.',
+        });
+        return;
+      case 'H5_REQUEST_TIME':
+        setBridgeStatus('H5 requested the current time');
+        sendMessage('SET_TIME', {
+          iso8601Utc: new Date().toISOString(),
+        });
+        return;
+      case 'H5_REQUEST_TARGET':
+        setBridgeStatus('H5 requested a new target');
+        sendNextHighlight();
+        return;
+      case 'H5_SEND_NOTE': {
+        const note = readPayloadText(message.payload) || 'H5 sent a note.';
+        setBridgeStatus('RN stored a note from H5');
+        setLastWebNote(note);
+        sendMessage('RN_ACK', {
+          forType: message.type,
+          text: `RN stored: ${note}`,
+        });
+        return;
+      }
+      default:
+        return;
     }
   }
+
+  const actions = [
+    {
+      caption: 'Ask H5 to reply',
+      label: 'Ping',
+      onPress: () =>
+        sendMessage('BRIDGE_PING', {
+          text: 'hello from react native',
+        }),
+    },
+    {
+      caption: 'Move the H5 target',
+      label: 'Highlight',
+      onPress: () => sendNextHighlight(),
+    },
+    {
+      caption: 'Update H5 copy',
+      label: 'Time',
+      onPress: () =>
+        sendMessage('SET_TIME', {
+          iso8601Utc: new Date().toISOString(),
+        }),
+    },
+    {
+      caption: 'Push a visible note into H5',
+      label: 'Note',
+      onPress: () =>
+        sendMessage('SET_NOTE', {
+          text: 'React Native pushed this note into the embedded H5 page.',
+        }),
+    },
+  ];
 
   return (
     <View style={styles.screen}>
@@ -168,30 +275,29 @@ export function LocalWebDemoScreen() {
           </View>
 
           <Text style={styles.sectionBody}>
-            RN controls live on this page. The dark framed area below is the H5
-            document loaded from bundled <Text style={styles.code}>web-dist</Text>.
+            Use the RN buttons below and the H5 buttons inside the viewport.
+            Each side now sends actions to the other and both sides keep their
+            own state and logs.
           </Text>
 
-          <Text style={styles.entryUrl}>{entryUrl}</Text>
+          <Text style={styles.entryUrl}>{DEFAULT_ENTRY_URL}</Text>
 
-          <LocalWebView
-            assetRoot="web-dist"
-            bridgeEnabled
-            entryFile="index.html"
-            onBridgeMessage={handleBridgeMessage}
-            outboundMessage={outboundMessage}
-            runtimeFlags={{
-              consumer: 'example-app',
-              feature: 'local-web-demo',
-              version: 1,
-            }}
-            style={styles.viewport}>
+          <View style={styles.viewportFrame}>
+            <LocalWebView
+              assetRoot="web-dist"
+              bridgeEnabled
+              entryFile="index.html"
+              onBridgeMessage={handleBridgeMessage}
+              outboundMessage={outboundMessage}
+              runtimeFlags={RUNTIME_FLAGS}
+              style={styles.viewport}
+            />
             <View pointerEvents="none" style={styles.viewportOverlay}>
               <View style={styles.viewportBadge}>
                 <Text style={styles.viewportBadgeText}>H5 surface starts here</Text>
               </View>
             </View>
-          </LocalWebView>
+          </View>
 
           {!isLocalWebViewAvailable ? (
             <View style={styles.noticeCard}>
@@ -205,51 +311,40 @@ export function LocalWebDemoScreen() {
         </View>
 
         <SectionCard
+          eyebrow="RN state"
+          title="What RN knows about the bridge"
+          body="These values live in React Native state. They update when the H5 page sends messages back through the native bridge.">
+          <View style={styles.metricsRow}>
+            <MetricCard label="Bridge" value={bridgeStatus} />
+            <MetricCard label="RN -> H5" value={`${outboundCount} sent`} />
+            <MetricCard label="H5 -> RN" value={`${inboundCount} sent`} />
+          </View>
+          <View style={styles.noteCard}>
+            <Text style={styles.noteLabel}>Last H5 note seen by RN</Text>
+            <Text style={styles.noteValue}>{lastWebNote}</Text>
+          </View>
+        </SectionCard>
+
+        <SectionCard
           eyebrow="RN controls"
           title="Send messages from React Native to H5"
-          body="These buttons are React Native components. Each one sends a bridge event into the local H5 page.">
+          body="These buttons are React Native components. The H5 page inside the viewport reacts immediately and updates its own DOM.">
           <View style={styles.buttonGrid}>
-            <ActionButton
-              label="Ping"
-              caption="Ask H5 to reply"
-              onPress={() =>
-                sendMessage('BRIDGE_PING', {
-                  text: 'hello from react native',
-                })
-              }
-            />
-            <ActionButton
-              label="Highlight"
-              caption="Move the H5 target"
-              onPress={() =>
-                sendMessage('SET_HIGHLIGHT', {
-                  label: 'Mars',
-                  x: 0.72,
-                  y: 0.44,
-                })
-              }
-            />
-            <ActionButton
-              label="Time"
-              caption="Update H5 copy"
-              onPress={() =>
-                sendMessage('SET_TIME', {
-                  iso8601Utc: new Date().toISOString(),
-                })
-              }
-            />
-            <ActionButton
-              label="Clear"
-              caption="Reset RN logs"
-              onPress={() => setLogs([])}
-            />
+            {actions.map(action => (
+              <ActionButton
+                key={action.label}
+                label={action.label}
+                caption={action.caption}
+                onPress={action.onPress}
+              />
+            ))}
           </View>
         </SectionCard>
 
         <SectionCard
           eyebrow="Bridge status"
           title="Current message flow"
-          body="This block is still rendered by RN. It summarizes the last known bridge activity from both sides.">
+          body="This summary is rendered by RN. Compare it with the H5 log inside the viewport to see both sides updating independently.">
           <View style={styles.metricsRow}>
             <MetricCard label="Bridge" value={bridgeStatus} />
             <MetricCard label="RN -> H5" value={lastOutboundType} />
@@ -260,7 +355,7 @@ export function LocalWebDemoScreen() {
         <SectionCard
           eyebrow="RN log"
           title="Recent bridge events observed by React Native"
-          body="The lines below are maintained by RN state. They are separate from the log rendered inside the H5 page.">
+          body="These lines are owned by RN state only. Use the H5 buttons inside the viewport and you should see this log update without changing the H5 log layout.">
           {logs.length === 0 ? (
             <Text style={styles.emptyState}>No messages yet.</Text>
           ) : (
@@ -496,11 +591,16 @@ const styles = StyleSheet.create({
   },
   viewport: {
     backgroundColor: '#0e1729',
+    height: 420,
+  },
+  viewportFrame: {
+    backgroundColor: '#0e1729',
     borderColor: '#101728',
     borderRadius: 26,
     borderWidth: 1,
     height: 420,
     overflow: 'hidden',
+    position: 'relative',
   },
   viewportOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -607,6 +707,27 @@ const styles = StyleSheet.create({
     color: '#1b2230',
     fontSize: 16,
     fontWeight: '800',
+    lineHeight: 20,
+  },
+  noteCard: {
+    backgroundColor: '#ffffff',
+    borderColor: '#ddd4c7',
+    borderRadius: 18,
+    borderWidth: 1,
+    marginTop: 10,
+    padding: 14,
+  },
+  noteLabel: {
+    color: '#7d715e',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  noteValue: {
+    color: '#2a3344',
+    fontSize: 14,
     lineHeight: 20,
   },
   emptyState: {
